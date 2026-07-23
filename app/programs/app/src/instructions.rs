@@ -1,11 +1,17 @@
 pub mod cancel;
 pub mod charge;
 pub mod create_plan;
+pub mod reauthorize;
+pub mod set_allowance;
+pub mod set_max_amount;
 pub mod set_plan_active;
 pub mod subscribe;
 
 pub use cancel::*;
 pub use charge::*;
 pub use create_plan::*;
+pub use reauthorize::*;
+pub use set_allowance::*;
+pub use set_max_amount::*;
 pub use set_plan_active::*;
 pub use subscribe::*;

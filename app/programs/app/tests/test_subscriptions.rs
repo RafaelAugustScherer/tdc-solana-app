@@ -73,6 +73,14 @@ impl Fixture {
         &mut self,
         allowance: u64,
     ) -> Result<(), Box<litesvm::types::FailedTransactionMetadata>> {
+        self.subscribe_capped(allowance, u64::MAX)
+    }
+
+    fn subscribe_capped(
+        &mut self,
+        allowance: u64,
+        max_amount_per_period: u64,
+    ) -> Result<(), Box<litesvm::types::FailedTransactionMetadata>> {
         self.env.send(
             &[subscribe_ix(
                 &self.subscriber.pubkey(),
@@ -81,6 +89,7 @@ impl Fixture {
                 &self.subscriber_ata,
                 &self.mint,
                 allowance,
+                max_amount_per_period,
             )],
             &[&self.subscriber],
         )
@@ -92,6 +101,7 @@ impl Fixture {
             &[charge_ix(
                 &self.plan,
                 &self.subscription,
+                &self.subscriber.pubkey(),
                 &self.subscriber_ata,
                 &self.merchant_ata,
                 &self.mint,
@@ -106,6 +116,8 @@ impl Fixture {
                 &self.subscriber.pubkey(),
                 &self.plan,
                 &self.subscription,
+                &self.subscriber_ata,
+                &self.mint,
             )],
             &[&self.subscriber],
         )
@@ -260,6 +272,7 @@ fn two_charges_in_one_transaction_take_only_one_payment() {
     let instruction = charge_ix(
         &fixture.plan,
         &fixture.subscription,
+        &fixture.subscriber.pubkey(),
         &fixture.subscriber_ata,
         &fixture.merchant_ata,
         &fixture.mint,
@@ -330,6 +343,7 @@ fn a_second_subscription_adds_to_the_delegation_and_both_charge() {
                 &fixture.subscriber_ata,
                 &fixture.mint,
                 ALLOWANCE,
+                u64::MAX,
             )],
             &[&fixture.subscriber],
         )
@@ -351,6 +365,7 @@ fn a_second_subscription_adds_to_the_delegation_and_both_charge() {
             &[charge_ix(
                 &other_plan,
                 &other_subscription,
+                &fixture.subscriber.pubkey(),
                 &fixture.subscriber_ata,
                 &other_merchant_ata,
                 &fixture.mint,
@@ -395,6 +410,7 @@ fn a_delegation_that_would_overflow_is_rejected() {
             &fixture.subscriber_ata,
             &fixture.mint,
             1,
+            u64::MAX,
         )],
         &[&fixture.subscriber],
     );
@@ -487,6 +503,7 @@ fn the_pool_is_drawn_first_come_first_served() {
                 &fixture.subscriber_ata,
                 &fixture.mint,
                 ALLOWANCE,
+                u64::MAX,
             )],
             &[&fixture.subscriber],
         )
@@ -507,6 +524,7 @@ fn the_pool_is_drawn_first_come_first_served() {
         &[charge_ix(
             &other_plan,
             &other_subscription,
+            &fixture.subscriber.pubkey(),
             &fixture.subscriber_ata,
             &other_merchant_ata,
             &fixture.mint,
@@ -557,6 +575,7 @@ fn a_charge_cannot_debit_another_wallets_token_account() {
         &[charge_ix(
             &fixture.plan,
             &fixture.subscription,
+            &fixture.subscriber.pubkey(),
             &victim_ata,
             &fixture.merchant_ata,
             &fixture.mint,
@@ -589,6 +608,7 @@ fn a_charge_cannot_debit_the_subscribers_other_token_account() {
         &[charge_ix(
             &fixture.plan,
             &fixture.subscription,
+            &fixture.subscriber.pubkey(),
             &auxiliary,
             &fixture.merchant_ata,
             &fixture.mint,
@@ -632,6 +652,7 @@ fn a_charge_cannot_be_redirected_to_another_merchant() {
         &[charge_ix(
             &fixture.plan,
             &fixture.subscription,
+            &fixture.subscriber.pubkey(),
             &fixture.subscriber_ata,
             &thief_ata,
             &fixture.mint,
@@ -654,6 +675,7 @@ fn a_charge_with_the_wrong_mint_account_is_rejected() {
         &[charge_ix(
             &fixture.plan,
             &fixture.subscription,
+            &fixture.subscriber.pubkey(),
             &fixture.subscriber_ata,
             &fixture.merchant_ata,
             &other_mint,
@@ -678,6 +700,7 @@ fn a_merchant_account_on_another_mint_is_rejected() {
         &[charge_ix(
             &fixture.plan,
             &fixture.subscription,
+            &fixture.subscriber.pubkey(),
             &fixture.subscriber_ata,
             &other_ata,
             &fixture.mint,
@@ -715,6 +738,7 @@ fn a_subscription_from_another_plan_is_rejected() {
         &[charge_ix(
             &other_plan,
             &fixture.subscription,
+            &fixture.subscriber.pubkey(),
             &fixture.subscriber_ata,
             &fixture.merchant_ata,
             &fixture.mint,
@@ -816,6 +840,8 @@ fn only_the_subscriber_can_cancel() {
             &stranger.pubkey(),
             &fixture.plan,
             &fixture.subscription,
+            &fixture.subscriber_ata,
+            &fixture.mint,
         )],
         &[&stranger],
     );
@@ -865,6 +891,7 @@ fn a_subscriber_without_an_associated_token_account_cannot_subscribe() {
             &ata(&subscriber.pubkey(), &mint),
             &mint,
             ALLOWANCE,
+            u64::MAX,
         )],
         &[&subscriber],
     );

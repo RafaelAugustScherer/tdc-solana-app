@@ -163,6 +163,17 @@ let total = existing
 Refusing when another program holds the delegate is deliberate: silently
 overwriting another protocol's delegation would break it.
 
+> **Superseded by [0004](0004-subscriber-spending-caps.md).** The read-and-add
+> arithmetic above is correct only while the token account's `delegated_amount`
+> faithfully mirrors program state, which stops being true the moment the
+> subscriber approves or revokes externally. 0004 replaces it with a
+> `SubscriberDelegation` PDA per `(subscriber, mint)` holding `committed_total`,
+> and every approving path writes that figure rather than computing a delta. The
+> `ForeignDelegate` guard survives on every approving path **except `cancel`**,
+> where refusing would let an unrelated dApp block a subscriber from closing their
+> own subscription. Read this section for why the delegation is shared; read 0004
+> for the arithmetic that is actually implemented.
+
 **`charge()`** — permissionless crank; the caller pays the transaction fee.
 
 Checks in order: plan active (`PlanInactive`), `clock.unix_timestamp >=
