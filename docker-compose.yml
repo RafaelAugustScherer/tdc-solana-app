@@ -1,0 +1,14 @@
+services:
+  dev:
+    build: .
+    image: anchor-dev
+    platform: linux/amd64
+    working_dir: /workspace/app
+    volumes:
+      - .:/workspace
+    ports:
+      - "8899:8899"
+      - "8900:8900"
+    stdin_open: true
+    tty: true
+    command: watchexec --poll 1s -w programs -e rs,toml -- anchor build

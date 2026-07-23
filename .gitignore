@@ -1,0 +1,30 @@
+# Anchor / Rust build artifacts
+target/
+**/target/
+.anchor/
+test-ledger/
+**/*.rs.bk
+
+# Node / TypeScript
+node_modules/
+**/node_modules/
+dist/
+.next/
+out/
+*.tsbuildinfo
+
+# Secrets & local wallets — never commit
+.env
+.env.*
+!.env.example
+**/id.json
+**/*-keypair.json
+*.pem
+
+# Claude Code — personal, non-shared overrides
+.claude/settings.local.json
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log
