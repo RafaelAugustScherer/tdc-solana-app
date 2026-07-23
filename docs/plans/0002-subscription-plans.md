@@ -1,6 +1,6 @@
 # 0002 — Subscription plans
 
-- **Status:** Accepted
+- **Status:** Implemented
 - **Author:** Rafael Scherer
 - **Related:** [0001](0001-development-harness.md) (harness this builds on);
   first of four — [0003](0003-delegation-and-charging.md),
@@ -228,9 +228,14 @@ Rust + LiteSVM, matching [`test_initialize.rs`](../../app/programs/app/tests/tes
     `is_active` is true again.
 11. Given a published plan, when a non-merchant signer calls `set_plan_active`,
     then it fails with a `has_one` constraint error and the flag is unchanged.
-12. Given a `Plan` address that does not match the seeds for the passed merchant
-    and `plan_id`, when `set_plan_active` runs, then it fails with a seeds
-    constraint error.
+12. Given an account that is not a `Plan` at all passed in the plan slot, when
+    `set_plan_active` runs, then it fails and the real plan is unchanged.
+
+Note there is no scenario for "a `Plan` address that does not match its own seeds":
+the `seeds` constraint re-derives from the account's stored `plan_id`, so a
+legitimately created plan always matches, and substituting a *different* merchant's
+plan is caught by `has_one` first — scenario 11. The remaining substitution worth a
+test is an account that is not a plan, which is scenario 12.
 
 ## Risks & open questions
 
@@ -244,12 +249,11 @@ Rust + LiteSVM, matching [`test_initialize.rs`](../../app/programs/app/tests/tes
   supporting them. Recorded as a future decision above.
 - **The Anchor CLI and crate versions disagree, pre-existing.** The
   [`Dockerfile`](../../Dockerfile) pins the Anchor CLI to **1.0.2** while
-  `app/Cargo.lock` resolves `anchor-lang` to **1.1.2**. This has not bitten the
-  placeholder program, but adding `anchor-spl` and a real IDL raises the odds of a
-  build or IDL-generation mismatch. De-risk by running `anchor build` in the
-  container as the first implementation step, before writing instructions; if it
-  breaks, align the versions in a separate change rather than folding it into this
-  one. Tracked separately.
+  `app/Cargo.lock` resolves `anchor-lang` to **1.1.2**. Checked during
+  implementation: the CLI that actually resolves in the dev image is **1.1.2**, and
+  `anchor build` generates the IDL cleanly with `anchor-spl` present, so this did
+  not bite. The `Dockerfile` pin is still stale and is tracked separately — not
+  folded into this change.
 
 No open questions.
 
