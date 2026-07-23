@@ -322,6 +322,18 @@ pub fn cancel_ix(
     }
 }
 
+pub fn update_price_ix(merchant: &Pubkey, plan: &Pubkey, new_amount: u64) -> Instruction {
+    Instruction {
+        program_id: app::ID,
+        accounts: app::accounts::UpdatePrice {
+            merchant: *merchant,
+            plan: *plan,
+        }
+        .to_account_metas(None),
+        data: app::instruction::UpdatePrice { new_amount }.data(),
+    }
+}
+
 pub fn set_max_amount_ix(
     subscriber: &Pubkey,
     plan: &Pubkey,

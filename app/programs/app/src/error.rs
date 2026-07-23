@@ -30,4 +30,8 @@ pub enum SubscriptionError {
     InvalidMaxAmount,
     #[msg("Plan price is above the maximum this subscriber authorised")]
     PriceAboveSubscriberMax,
+    #[msg("A fixed-price plan cannot change its price")]
+    PlanPriceFixed,
+    #[msg("The price in force when this period began is no longer known")]
+    PriceHistoryUnavailable,
 }

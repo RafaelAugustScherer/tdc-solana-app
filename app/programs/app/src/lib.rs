@@ -36,6 +36,10 @@ pub mod app {
         ctx.accounts.run(is_active)
     }
 
+    pub fn update_price(ctx: Context<UpdatePrice>, new_amount: u64) -> Result<()> {
+        ctx.accounts.run(new_amount)
+    }
+
     pub fn subscribe(
         ctx: Context<Subscribe>,
         allowance: u64,
