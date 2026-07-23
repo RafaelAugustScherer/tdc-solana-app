@@ -46,3 +46,14 @@ local validator's RPC and WebSocket for a host frontend.
 docker run --rm anchor-dev bash -c \
   "rustc --version && solana --version && anchor --version && node --version"
 ```
+
+## Development
+
+This repo runs on a **plan-first** workflow — no non-trivial change starts in
+code. Start here:
+
+- [`CLAUDE.md`](CLAUDE.md) — the project constitution and the one rule.
+- [`docs/workflow.md`](docs/workflow.md) — research → plan → review → build → verify.
+- [`docs/engineering-guidelines.md`](docs/engineering-guidelines.md) — how code is written.
+- [`docs/plans/`](docs/plans/) — a documented plan per work item.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — the short version.
