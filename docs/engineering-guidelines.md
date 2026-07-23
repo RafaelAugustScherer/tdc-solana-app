@@ -55,6 +55,8 @@ judgment at the edges instead of matching the letter of the rule.
 
 ## TypeScript
 
+> Deep rules: **solana-ai-kit** `.claude/rules/typescript.md`. Defer to it.
+
 - `strict` mode; no `any` — reach for `unknown` and narrow.
 - No `console.log` in committed code; use a logger or remove it.
 - Prefer `@solana/kit` and generated (Codama/Anchor) clients over hand-rolled
@@ -62,6 +64,11 @@ judgment at the edges instead of matching the letter of the rule.
 - Format with the repo's Prettier config (`yarn lint:fix` in `app/`).
 
 ## Rust / Anchor
+
+> Authoritative, current deep rules live in the **solana-ai-kit** plugin —
+> `.claude/rules/anchor.md`, `rust.md`, `pinocchio.md`. They track Anchor 1.0 /
+> Solana 3.x (`@anchor-lang/core`, `transfer_checked`, LiteSVM/Surfpool). Defer
+> to them; the bullets here are the always-on essentials.
 
 - Let Anchor's macros do the account checks (ownership, signer, seeds, rent)
   rather than re-implementing them by hand.
@@ -71,6 +78,10 @@ judgment at the edges instead of matching the letter of the rule.
 
 ## Solana security
 
+> Run the **solana-ai-kit** security gates on every change — `/diff-review` and
+> `/audit-solana` (they wrap the Trail of Bits scanner and safe-solana-builder).
+> The checklist below is the minimum you verify by hand.
+
 - Check `is_signer` / ownership on every account an instruction mutates.
 - Derive PDAs, don't accept them as input; verify the bump.
 - Guard against arithmetic overflow (checked math) and missing-rent-exemption.
@@ -79,7 +90,9 @@ judgment at the edges instead of matching the letter of the rule.
 ## Testing
 
 - Every change ships with tests that map to the plan's test scenarios.
-- Program logic: Anchor/`ts-mocha` integration tests against a local validator.
+- Program logic: integration tests via the framework the repo is configured for.
+  Don't hardcode a runner here — Anchor 1.0 defaults to LiteSVM/Surfpool; `app/`
+  config and the kit's rules are the source of truth.
 - Prefer a failing test first, then the code that makes it pass.
 - A change isn't done until the test suite is green.
 
@@ -87,7 +100,9 @@ judgment at the edges instead of matching the letter of the rule.
 
 - **Check the current state before adding or upgrading anything.** *Why:* model
   knowledge lags reality. Confirm the latest version, scan for known advisories,
-  and verify the API you'll call still exists in that version's docs.
+  and verify the API you'll call still exists in that version's docs. Use the
+  `solana-dev` and `context7` MCP servers for current Solana and library docs
+  instead of relying on memory.
 - Prefer the ecosystem default with real adoption over the clever niche pick.
 - No dependency for something the standard library or an existing dep already does.
 

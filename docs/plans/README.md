@@ -9,6 +9,7 @@ work lands.
 - One file per work item: `NNNN-short-slug.md` (zero-padded, incrementing).
 - Start from [`TEMPLATE.md`](TEMPLATE.md).
 - One plan maps to one PR.
+- Add every new plan to the Index below — that list is the map.
 - Keep the plan honest: if the implementation diverges, update the plan in the
   same change — never let the two drift apart.
 

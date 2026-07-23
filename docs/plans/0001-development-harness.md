@@ -85,3 +85,13 @@ Documentation and config, so verification is structural rather than unit-tested:
 - [x] Four sub-agents and two skills defined and documented.
 - [x] Settings valid; entry-point docs added.
 - [x] Product-agnostic throughout.
+- [x] Wired to solana-ai-kit (see follow-up).
+
+## Follow-up (same PR): solana-ai-kit wiring
+
+The harness orchestrates the **solana-ai-kit** plugin rather than duplicating it.
+Added in the same PR: `docs/solana-toolchain.md` (phase → command/MCP map + plugin
+install), plus pointers from the engineering guidelines, workflow, and agent
+roster to the kit's rules, security gates (`/audit-solana`, `/diff-review`), and
+docs MCP servers (`solana-dev`, `context7`). Fast-moving specifics (test runner,
+package names) now defer to the kit's rules instead of being hardcoded here.

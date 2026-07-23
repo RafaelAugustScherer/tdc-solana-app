@@ -10,6 +10,9 @@ research → plan (documented) → review → implement → verify → PR
 Trivial changes (a typo, a version bump, a one-line fix) skip the plan; use
 judgment, and when in doubt, write the plan.
 
+The concrete Solana tooling for each phase — which solana-ai-kit command, agent,
+or MCP server to reach for — is mapped in [`solana-toolchain.md`](solana-toolchain.md).
+
 ## 1. Research
 
 Understand the problem and what already exists here before proposing anything.
@@ -19,6 +22,8 @@ Understand the problem and what already exists here before proposing anything.
 - When the change depends on a library or approach you're unsure about, hand it
   to the **researcher** agent: it returns options with trade-offs and a
   recommendation. Don't ship the first thing that works.
+- Read current docs from the `solana-dev` and `context7` MCP servers rather than
+  from memory; for ecosystem investigation, use the `solana-researcher` specialist.
 
 ## 2. Plan (documented)
 
@@ -55,14 +60,16 @@ Build exactly what the accepted plan describes.
   the plan and the code never drift apart.
 
 The **`ship-work`** skill drives this. The **implementer** agent does the work
-against an already-accepted plan.
+against an already-accepted plan; for deep Solana work use the specialist agents
+(`anchor-engineer`, `solana-frontend-engineer`, …) and the kit's scaffolding
+commands (`/scaffold`, `/build-program`, `/generate-idl-client`).
 
 ## 5. Verify → PR
 
-- Run build, tests, and lint; all green.
+- Run build, tests, and lint; all green (`/test-and-fix`, `/test-rust`, `/test-ts`).
 - Check every item in the plan's Definition of Done.
-- Run a **reviewer** pass over the diff (clean code, no comments, correctness,
-  tests, Solana security).
+- Run a **reviewer** pass over the diff, backed by `/diff-review` and
+  `/audit-solana` (clean code, no comments, correctness, tests, Solana security).
 - Open a PR that links its plan and states how the Definition of Done was met.
 
 ## Definition of Done (baseline)

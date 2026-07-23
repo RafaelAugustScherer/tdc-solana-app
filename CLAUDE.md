@@ -70,6 +70,14 @@ Default flow: **planner** → **researcher** (as needed) → **implementer** →
 **reviewer**. For deep Solana work, defer to the `solana-ai-kit` specialists
 (e.g. `anchor-engineer`, `solana-frontend-engineer`, `solana-qa-engineer`).
 
+## Toolchain — solana-ai-kit
+
+Solana capability — specialist agents, build/test/deploy/audit commands, current
+language rules, and docs/RPC MCP servers — comes from the **solana-ai-kit**
+plugin, not from this harness. The harness orchestrates it. Install it as a
+plugin (namespaced, so it won't collide with this repo's config) and use
+[`docs/solana-toolchain.md`](docs/solana-toolchain.md) for the phase → command map.
+
 ## Commits & PRs
 
 - Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`).
