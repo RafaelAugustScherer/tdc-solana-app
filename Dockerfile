@@ -32,10 +32,11 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
 RUN sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
 ENV PATH="/root/.local/share/solana/install/active_release/bin:${PATH}"
 
-# Anchor via avm (pinned; bump with `avm install <ver> && avm use <ver>`)
+# Anchor via avm — keep in lockstep with anchor-lang in
+# app/programs/app/Cargo.toml and @anchor-lang/core in app/package.json
 RUN cargo install --git https://github.com/solana-foundation/anchor avm --force \
-    && avm install 1.0.2 \
-    && avm use 1.0.2
+    && avm install 1.1.2 \
+    && avm use 1.1.2
 ENV PATH="/root/.avm/bin:${PATH}"
 
 # watchexec — file watcher for the hot-reload dev loop
