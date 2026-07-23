@@ -68,7 +68,9 @@ impl Charge<'_> {
             SubscriptionError::PeriodNotElapsed
         );
 
-        let amount = self.plan.amount_per_period;
+        let amount = self
+            .plan
+            .applicable_amount(self.subscription.next_charge_at)?;
         require!(
             amount <= self.subscription.max_amount_per_period,
             SubscriptionError::PriceAboveSubscriberMax

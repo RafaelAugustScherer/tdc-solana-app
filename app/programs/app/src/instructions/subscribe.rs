@@ -69,8 +69,10 @@ impl Subscribe<'_> {
             SubscriptionError::InvalidMaxAmount
         );
         require!(self.plan.is_active, SubscriptionError::PlanInactive);
+
+        let now = Clock::get()?.unix_timestamp;
         require!(
-            self.plan.amount_per_period <= max_amount_per_period,
+            self.plan.applicable_amount(now)? <= max_amount_per_period,
             SubscriptionError::PriceAboveSubscriberMax
         );
 
@@ -100,7 +102,7 @@ impl Subscribe<'_> {
         self.subscription.set_inner(Subscription {
             plan: self.plan.key(),
             subscriber: self.subscriber.key(),
-            next_charge_at: Clock::get()?.unix_timestamp,
+            next_charge_at: now,
             allowance_remaining: allowance,
             max_amount_per_period,
             bump: subscription_bump,

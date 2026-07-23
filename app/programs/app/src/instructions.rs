@@ -6,6 +6,7 @@ pub mod set_allowance;
 pub mod set_max_amount;
 pub mod set_plan_active;
 pub mod subscribe;
+pub mod update_price;
 
 pub use cancel::*;
 pub use charge::*;
@@ -15,3 +16,4 @@ pub use set_allowance::*;
 pub use set_max_amount::*;
 pub use set_plan_active::*;
 pub use subscribe::*;
+pub use update_price::*;
