@@ -34,4 +34,16 @@ pub mod app {
     pub fn set_plan_active(ctx: Context<SetPlanActive>, is_active: bool) -> Result<()> {
         ctx.accounts.run(is_active)
     }
+
+    pub fn subscribe(ctx: Context<Subscribe>, allowance: u64) -> Result<()> {
+        ctx.accounts.run(allowance, ctx.bumps.subscription)
+    }
+
+    pub fn charge(ctx: Context<Charge>) -> Result<()> {
+        ctx.accounts.run(ctx.bumps.delegate_authority)
+    }
+
+    pub fn cancel(ctx: Context<Cancel>) -> Result<()> {
+        ctx.accounts.run()
+    }
 }
