@@ -27,3 +27,10 @@ Each plan carries a status in its header:
 | # | Title | Status |
 |---|-------|--------|
 | [0001](0001-development-harness.md) | Development harness | Implemented |
+| [0002](0002-subscription-plans.md) | Subscription plans | Accepted |
+| [0003](0003-delegation-and-charging.md) | Delegation and charging | Accepted |
+| [0004](0004-subscriber-spending-caps.md) | Subscriber spending caps | Accepted |
+| [0005](0005-variable-pricing.md) | Variable pricing | Accepted |
+
+Plans 0002–0005 build one product — revocable subscriptions — in sequence, and
+should be implemented in order. Each is a separate PR.
