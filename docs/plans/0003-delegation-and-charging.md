@@ -1,6 +1,6 @@
 # 0003 — Delegation and charging
 
-- **Status:** Accepted
+- **Status:** Implemented
 - **Author:** Rafael Scherer
 - **Related:** builds on [0002](0002-subscription-plans.md); followed by
   [0004](0004-subscriber-spending-caps.md), [0005](0005-variable-pricing.md)
@@ -468,6 +468,15 @@ Rust + LiteSVM. Time-dependent cases warp the clock rather than sleeping.
     when `charge` runs, then it fails on the `has_one`/seeds constraint.
 25. Given a `Plan` address not matching the seeds for its stored merchant and
     `plan_id`, when `charge` runs, then it fails on the seeds constraint.
+
+As in [0002](0002-subscription-plans.md), scenario 25 turns out not to be
+independently reachable and has no test: the `seeds` constraint re-derives from the
+plan's own stored `merchant` and `plan_id`, so a legitimately created plan always
+matches its address, and substituting a *different* plan is caught by `has_one =
+plan` on the subscription first — scenario 24. Scenario 17 likewise has no test of
+its own; the sibling-subscription case it describes is exercised by scenario 15,
+which drains the shared pool and asserts the second merchant gets
+`DelegateRevoked`.
 
 **Guards and authorisation**
 

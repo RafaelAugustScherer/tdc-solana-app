@@ -1,5 +1,8 @@
+#![allow(dead_code)]
+
 use anchor_lang::{AccountDeserialize, InstructionData, ToAccountMetas};
 use litesvm::{types::FailedTransactionMetadata, LiteSVM};
+use solana_clock::Clock;
 use solana_instruction::Instruction;
 use solana_keypair::Keypair;
 use solana_message::{Message, VersionedMessage};
@@ -37,6 +40,7 @@ impl Env {
         instructions: &[Instruction],
         signers: &[&Keypair],
     ) -> Result<(), Box<FailedTransactionMetadata>> {
+        self.svm.expire_blockhash();
         let blockhash = self.svm.latest_blockhash();
         let message =
             Message::new_with_blockhash(instructions, Some(&signers[0].pubkey()), &blockhash);
@@ -86,9 +90,195 @@ impl Env {
         mint.pubkey()
     }
 
+    pub fn create_ata(&mut self, owner: &Keypair, mint: Pubkey) -> Pubkey {
+        let instruction =
+            spl_associated_token_account_interface::instruction::create_associated_token_account(
+                &owner.pubkey(),
+                &owner.pubkey(),
+                &mint,
+                &TOKEN_PROGRAM_ID,
+            );
+
+        self.send(&[instruction], &[owner]).unwrap();
+
+        ata(&owner.pubkey(), &mint)
+    }
+
+    pub fn create_auxiliary_token_account(&mut self, owner: &Keypair, mint: Pubkey) -> Pubkey {
+        let account = Keypair::new();
+        let space = spl_token_interface::state::Account::LEN;
+        let lamports = self.svm.minimum_balance_for_rent_exemption(space);
+
+        let create = solana_system_interface::instruction::create_account(
+            &owner.pubkey(),
+            &account.pubkey(),
+            lamports,
+            space as u64,
+            &TOKEN_PROGRAM_ID,
+        );
+        let initialize = spl_token_interface::instruction::initialize_account3(
+            &TOKEN_PROGRAM_ID,
+            &account.pubkey(),
+            &mint,
+            &owner.pubkey(),
+        )
+        .unwrap();
+
+        self.send(&[create, initialize], &[owner, &account])
+            .unwrap();
+
+        account.pubkey()
+    }
+
+    pub fn mint_to(&mut self, authority: &Keypair, mint: Pubkey, to: Pubkey, amount: u64) {
+        let instruction = spl_token_interface::instruction::mint_to(
+            &TOKEN_PROGRAM_ID,
+            &mint,
+            &to,
+            &authority.pubkey(),
+            &[],
+            amount,
+        )
+        .unwrap();
+
+        self.send(&[instruction], &[authority]).unwrap();
+    }
+
+    pub fn approve(&mut self, owner: &Keypair, account: Pubkey, delegate: Pubkey, amount: u64) {
+        let instruction = spl_token_interface::instruction::approve(
+            &TOKEN_PROGRAM_ID,
+            &account,
+            &delegate,
+            &owner.pubkey(),
+            &[],
+            amount,
+        )
+        .unwrap();
+
+        self.send(&[instruction], &[owner]).unwrap();
+    }
+
+    pub fn revoke(&mut self, owner: &Keypair, account: Pubkey) {
+        let instruction = spl_token_interface::instruction::revoke(
+            &TOKEN_PROGRAM_ID,
+            &account,
+            &owner.pubkey(),
+            &[],
+        )
+        .unwrap();
+
+        self.send(&[instruction], &[owner]).unwrap();
+    }
+
+    pub fn advance_clock(&mut self, seconds: i64) {
+        let mut clock: Clock = self.svm.get_sysvar();
+        clock.unix_timestamp += seconds;
+        self.svm.set_sysvar(&clock);
+    }
+
     pub fn plan(&self, address: Pubkey) -> app::Plan {
         let account = self.svm.get_account(&address).unwrap();
         app::Plan::try_deserialize(&mut account.data.as_slice()).unwrap()
+    }
+
+    pub fn subscription(&self, address: Pubkey) -> app::Subscription {
+        let account = self.svm.get_account(&address).unwrap();
+        app::Subscription::try_deserialize(&mut account.data.as_slice()).unwrap()
+    }
+
+    pub fn subscription_exists(&self, address: Pubkey) -> bool {
+        self.svm
+            .get_account(&address)
+            .is_some_and(|account| !account.data.is_empty())
+    }
+
+    pub fn token_account(&self, address: Pubkey) -> spl_token_interface::state::Account {
+        let account = self.svm.get_account(&address).unwrap();
+        spl_token_interface::state::Account::unpack(&account.data).unwrap()
+    }
+
+    pub fn balance(&self, address: Pubkey) -> u64 {
+        self.token_account(address).amount
+    }
+}
+
+pub fn ata(owner: &Pubkey, mint: &Pubkey) -> Pubkey {
+    spl_associated_token_account_interface::address::get_associated_token_address_with_program_id(
+        owner,
+        mint,
+        &TOKEN_PROGRAM_ID,
+    )
+}
+
+pub fn subscription_pda(plan: &Pubkey, subscriber: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[b"subscription", plan.as_ref(), subscriber.as_ref()],
+        &app::ID,
+    )
+}
+
+pub fn delegate_pda() -> (Pubkey, u8) {
+    Pubkey::find_program_address(&[b"delegate"], &app::ID)
+}
+
+pub fn subscribe_ix(
+    subscriber: &Pubkey,
+    plan: &Pubkey,
+    subscription: &Pubkey,
+    subscriber_token_account: &Pubkey,
+    mint: &Pubkey,
+    allowance: u64,
+) -> Instruction {
+    Instruction {
+        program_id: app::ID,
+        accounts: app::accounts::Subscribe {
+            subscriber: *subscriber,
+            plan: *plan,
+            subscription: *subscription,
+            subscriber_token_account: *subscriber_token_account,
+            mint: *mint,
+            delegate_authority: delegate_pda().0,
+            token_program: TOKEN_PROGRAM_ID,
+            system_program: solana_system_interface::program::ID,
+        }
+        .to_account_metas(None),
+        data: app::instruction::Subscribe { allowance }.data(),
+    }
+}
+
+pub fn charge_ix(
+    plan: &Pubkey,
+    subscription: &Pubkey,
+    subscriber_token_account: &Pubkey,
+    merchant_token_account: &Pubkey,
+    mint: &Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: app::ID,
+        accounts: app::accounts::Charge {
+            plan: *plan,
+            subscription: *subscription,
+            subscriber_token_account: *subscriber_token_account,
+            merchant_token_account: *merchant_token_account,
+            mint: *mint,
+            delegate_authority: delegate_pda().0,
+            token_program: TOKEN_PROGRAM_ID,
+        }
+        .to_account_metas(None),
+        data: app::instruction::Charge {}.data(),
+    }
+}
+
+pub fn cancel_ix(subscriber: &Pubkey, plan: &Pubkey, subscription: &Pubkey) -> Instruction {
+    Instruction {
+        program_id: app::ID,
+        accounts: app::accounts::Cancel {
+            subscriber: *subscriber,
+            plan: *plan,
+            subscription: *subscription,
+        }
+        .to_account_metas(None),
+        data: app::instruction::Cancel {}.data(),
     }
 }
 
