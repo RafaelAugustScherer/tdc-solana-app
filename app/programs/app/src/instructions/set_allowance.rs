@@ -4,12 +4,12 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 use crate::{
     constants::{DELEGATE_SEED, DELEGATION_SEED, PLAN_SEED, SUBSCRIPTION_SEED},
     delegation,
+    error::SubscriptionError,
     state::{Plan, SubscriberDelegation, Subscription},
 };
 
 #[derive(Accounts)]
-pub struct Cancel<'info> {
-    #[account(mut)]
+pub struct SetAllowance<'info> {
     pub subscriber: Signer<'info>,
 
     #[account(
@@ -20,7 +20,6 @@ pub struct Cancel<'info> {
 
     #[account(
         mut,
-        close = subscriber,
         seeds = [SUBSCRIPTION_SEED, plan.key().as_ref(), subscriber.key().as_ref()],
         bump = subscription.bump,
         has_one = plan,
@@ -54,24 +53,33 @@ pub struct Cancel<'info> {
     pub token_program: Program<'info, Token>,
 }
 
-impl Cancel<'_> {
-    pub fn run(&mut self) -> Result<()> {
-        let committed_total = self
-            .subscriber_delegation
-            .committed_total
-            .saturating_sub(self.subscription.allowance_remaining);
+impl SetAllowance<'_> {
+    pub fn run(&mut self, new_allowance: u64) -> Result<()> {
+        require!(new_allowance > 0, SubscriptionError::InvalidAllowance);
+
+        delegation::require_not_foreign(&self.subscriber_token_account, &self.delegate_authority)?;
+
+        let previous = self.subscription.allowance_remaining;
+        let committed_total = if new_allowance >= previous {
+            self.subscriber_delegation
+                .committed_total
+                .checked_add(new_allowance - previous)
+                .ok_or(SubscriptionError::AllowanceOverflow)?
+        } else {
+            self.subscriber_delegation
+                .committed_total
+                .saturating_sub(previous - new_allowance)
+        };
+
         self.subscriber_delegation.committed_total = committed_total;
+        self.subscription.allowance_remaining = new_allowance;
 
-        if delegation::is_held_by(&self.subscriber_token_account, &self.delegate_authority) {
-            delegation::approve(
-                &self.token_program,
-                &self.subscriber_token_account,
-                &self.delegate_authority,
-                &self.subscriber,
-                committed_total,
-            )?;
-        }
-
-        Ok(())
+        delegation::approve(
+            &self.token_program,
+            &self.subscriber_token_account,
+            &self.delegate_authority,
+            &self.subscriber,
+            committed_total,
+        )
     }
 }

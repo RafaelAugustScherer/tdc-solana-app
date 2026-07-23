@@ -1,4 +1,5 @@
 pub mod constants;
+pub mod delegation;
 pub mod error;
 pub mod instructions;
 pub mod state;
@@ -35,8 +36,29 @@ pub mod app {
         ctx.accounts.run(is_active)
     }
 
-    pub fn subscribe(ctx: Context<Subscribe>, allowance: u64) -> Result<()> {
-        ctx.accounts.run(allowance, ctx.bumps.subscription)
+    pub fn subscribe(
+        ctx: Context<Subscribe>,
+        allowance: u64,
+        max_amount_per_period: u64,
+    ) -> Result<()> {
+        ctx.accounts.run(
+            allowance,
+            max_amount_per_period,
+            ctx.bumps.subscription,
+            ctx.bumps.subscriber_delegation,
+        )
+    }
+
+    pub fn set_max_amount(ctx: Context<SetMaxAmount>, new_max: u64) -> Result<()> {
+        ctx.accounts.run(new_max)
+    }
+
+    pub fn set_allowance(ctx: Context<SetAllowance>, new_allowance: u64) -> Result<()> {
+        ctx.accounts.run(new_allowance)
+    }
+
+    pub fn reauthorize(ctx: Context<Reauthorize>) -> Result<()> {
+        ctx.accounts.run()
     }
 
     pub fn charge(ctx: Context<Charge>) -> Result<()> {

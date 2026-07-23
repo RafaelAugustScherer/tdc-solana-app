@@ -3,9 +3,9 @@ use anchor_spl::token::{self, Mint, Token, TokenAccount, TransferChecked};
 use solana_program_option::COption;
 
 use crate::{
-    constants::{DELEGATE_SEED, PLAN_SEED, SUBSCRIPTION_SEED},
+    constants::{DELEGATE_SEED, DELEGATION_SEED, PLAN_SEED, SUBSCRIPTION_SEED},
     error::SubscriptionError,
-    state::{Plan, Subscription},
+    state::{Plan, SubscriberDelegation, Subscription},
 };
 
 #[derive(Accounts)]
@@ -23,6 +23,14 @@ pub struct Charge<'info> {
         has_one = plan,
     )]
     pub subscription: Account<'info, Subscription>,
+
+    #[account(
+        mut,
+        seeds = [DELEGATION_SEED, subscription.subscriber.as_ref(), plan.mint.as_ref()],
+        bump = subscriber_delegation.bump,
+        has_one = mint,
+    )]
+    pub subscriber_delegation: Account<'info, SubscriberDelegation>,
 
     #[account(
         mut,
@@ -62,6 +70,10 @@ impl Charge<'_> {
 
         let amount = self.plan.amount_per_period;
         require!(
+            amount <= self.subscription.max_amount_per_period,
+            SubscriptionError::PriceAboveSubscriberMax
+        );
+        require!(
             self.subscription.allowance_remaining >= amount,
             SubscriptionError::AllowanceExhausted
         );
@@ -95,6 +107,10 @@ impl Charge<'_> {
             .allowance_remaining
             .checked_sub(amount)
             .ok_or(SubscriptionError::AllowanceExhausted)?;
+        self.subscriber_delegation.committed_total = self
+            .subscriber_delegation
+            .committed_total
+            .saturating_sub(amount);
 
         self.advance_schedule(now)
     }
