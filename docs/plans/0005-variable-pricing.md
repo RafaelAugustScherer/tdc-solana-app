@@ -1,6 +1,6 @@
 # 0005 — Variable pricing
 
-- **Status:** Accepted
+- **Status:** Implemented
 - **Author:** Rafael Scherer
 - **Related:** builds on [0002](0002-subscription-plans.md),
   [0003](0003-delegation-and-charging.md), [0004](0004-subscriber-spending-caps.md)
