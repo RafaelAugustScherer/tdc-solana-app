@@ -26,4 +26,8 @@ pub enum SubscriptionError {
     WrongMerchantAccount,
     #[msg("Token account mint does not match the plan mint")]
     WrongMint,
+    #[msg("Maximum amount per period must be greater than zero")]
+    InvalidMaxAmount,
+    #[msg("Plan price is above the maximum this subscriber authorised")]
+    PriceAboveSubscriberMax,
 }

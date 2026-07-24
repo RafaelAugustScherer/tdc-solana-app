@@ -8,11 +8,21 @@ pub enum PriceMode {
 
 #[account]
 #[derive(InitSpace)]
+pub struct SubscriberDelegation {
+    pub subscriber: Pubkey,
+    pub mint: Pubkey,
+    pub committed_total: u64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
 pub struct Subscription {
     pub plan: Pubkey,
     pub subscriber: Pubkey,
     pub next_charge_at: i64,
     pub allowance_remaining: u64,
+    pub max_amount_per_period: u64,
     pub bump: u8,
 }
 

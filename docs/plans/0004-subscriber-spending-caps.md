@@ -1,6 +1,6 @@
 # 0004 — Subscriber spending caps
 
-- **Status:** Accepted
+- **Status:** Implemented
 - **Author:** Rafael Scherer
 - **Related:** builds on [0002](0002-subscription-plans.md) and
   [0003](0003-delegation-and-charging.md); followed by [0005](0005-variable-pricing.md)

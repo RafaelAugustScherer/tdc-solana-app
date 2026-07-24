@@ -186,6 +186,20 @@ impl Env {
         app::Subscription::try_deserialize(&mut account.data.as_slice()).unwrap()
     }
 
+    pub fn subscriber_delegation(&self, address: Pubkey) -> app::SubscriberDelegation {
+        let account = self.svm.get_account(&address).unwrap();
+        app::SubscriberDelegation::try_deserialize(&mut account.data.as_slice()).unwrap()
+    }
+
+    pub fn committed_total(&self, subscriber: &Pubkey, mint: &Pubkey) -> u64 {
+        self.subscriber_delegation(delegation_pda(subscriber, mint).0)
+            .committed_total
+    }
+
+    pub fn delegated_amount(&self, address: Pubkey) -> u64 {
+        self.token_account(address).delegated_amount
+    }
+
     pub fn subscription_exists(&self, address: Pubkey) -> bool {
         self.svm
             .get_account(&address)
@@ -221,6 +235,13 @@ pub fn delegate_pda() -> (Pubkey, u8) {
     Pubkey::find_program_address(&[b"delegate"], &app::ID)
 }
 
+pub fn delegation_pda(subscriber: &Pubkey, mint: &Pubkey) -> (Pubkey, u8) {
+    Pubkey::find_program_address(
+        &[b"delegation", subscriber.as_ref(), mint.as_ref()],
+        &app::ID,
+    )
+}
+
 pub fn subscribe_ix(
     subscriber: &Pubkey,
     plan: &Pubkey,
@@ -228,6 +249,7 @@ pub fn subscribe_ix(
     subscriber_token_account: &Pubkey,
     mint: &Pubkey,
     allowance: u64,
+    max_amount_per_period: u64,
 ) -> Instruction {
     Instruction {
         program_id: app::ID,
@@ -235,6 +257,7 @@ pub fn subscribe_ix(
             subscriber: *subscriber,
             plan: *plan,
             subscription: *subscription,
+            subscriber_delegation: delegation_pda(subscriber, mint).0,
             subscriber_token_account: *subscriber_token_account,
             mint: *mint,
             delegate_authority: delegate_pda().0,
@@ -242,13 +265,18 @@ pub fn subscribe_ix(
             system_program: solana_system_interface::program::ID,
         }
         .to_account_metas(None),
-        data: app::instruction::Subscribe { allowance }.data(),
+        data: app::instruction::Subscribe {
+            allowance,
+            max_amount_per_period,
+        }
+        .data(),
     }
 }
 
 pub fn charge_ix(
     plan: &Pubkey,
     subscription: &Pubkey,
+    subscriber: &Pubkey,
     subscriber_token_account: &Pubkey,
     merchant_token_account: &Pubkey,
     mint: &Pubkey,
@@ -258,6 +286,7 @@ pub fn charge_ix(
         accounts: app::accounts::Charge {
             plan: *plan,
             subscription: *subscription,
+            subscriber_delegation: delegation_pda(subscriber, mint).0,
             subscriber_token_account: *subscriber_token_account,
             merchant_token_account: *merchant_token_account,
             mint: *mint,
@@ -269,16 +298,90 @@ pub fn charge_ix(
     }
 }
 
-pub fn cancel_ix(subscriber: &Pubkey, plan: &Pubkey, subscription: &Pubkey) -> Instruction {
+pub fn cancel_ix(
+    subscriber: &Pubkey,
+    plan: &Pubkey,
+    subscription: &Pubkey,
+    subscriber_token_account: &Pubkey,
+    mint: &Pubkey,
+) -> Instruction {
     Instruction {
         program_id: app::ID,
         accounts: app::accounts::Cancel {
             subscriber: *subscriber,
             plan: *plan,
             subscription: *subscription,
+            subscriber_delegation: delegation_pda(subscriber, mint).0,
+            subscriber_token_account: *subscriber_token_account,
+            mint: *mint,
+            delegate_authority: delegate_pda().0,
+            token_program: TOKEN_PROGRAM_ID,
         }
         .to_account_metas(None),
         data: app::instruction::Cancel {}.data(),
+    }
+}
+
+pub fn set_max_amount_ix(
+    subscriber: &Pubkey,
+    plan: &Pubkey,
+    subscription: &Pubkey,
+    new_max: u64,
+) -> Instruction {
+    Instruction {
+        program_id: app::ID,
+        accounts: app::accounts::SetMaxAmount {
+            subscriber: *subscriber,
+            plan: *plan,
+            subscription: *subscription,
+        }
+        .to_account_metas(None),
+        data: app::instruction::SetMaxAmount { new_max }.data(),
+    }
+}
+
+pub fn set_allowance_ix(
+    subscriber: &Pubkey,
+    plan: &Pubkey,
+    subscription: &Pubkey,
+    subscriber_token_account: &Pubkey,
+    mint: &Pubkey,
+    new_allowance: u64,
+) -> Instruction {
+    Instruction {
+        program_id: app::ID,
+        accounts: app::accounts::SetAllowance {
+            subscriber: *subscriber,
+            plan: *plan,
+            subscription: *subscription,
+            subscriber_delegation: delegation_pda(subscriber, mint).0,
+            subscriber_token_account: *subscriber_token_account,
+            mint: *mint,
+            delegate_authority: delegate_pda().0,
+            token_program: TOKEN_PROGRAM_ID,
+        }
+        .to_account_metas(None),
+        data: app::instruction::SetAllowance { new_allowance }.data(),
+    }
+}
+
+pub fn reauthorize_ix(
+    subscriber: &Pubkey,
+    subscriber_token_account: &Pubkey,
+    mint: &Pubkey,
+) -> Instruction {
+    Instruction {
+        program_id: app::ID,
+        accounts: app::accounts::Reauthorize {
+            subscriber: *subscriber,
+            subscriber_delegation: delegation_pda(subscriber, mint).0,
+            subscriber_token_account: *subscriber_token_account,
+            mint: *mint,
+            delegate_authority: delegate_pda().0,
+            token_program: TOKEN_PROGRAM_ID,
+        }
+        .to_account_metas(None),
+        data: app::instruction::Reauthorize {}.data(),
     }
 }
 

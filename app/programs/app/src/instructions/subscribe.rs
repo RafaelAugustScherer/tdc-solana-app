@@ -1,11 +1,11 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Approve, Mint, Token, TokenAccount};
-use solana_program_option::COption;
+use anchor_spl::token::{Mint, Token, TokenAccount};
 
 use crate::{
-    constants::{DELEGATE_SEED, PLAN_SEED, SUBSCRIPTION_SEED},
+    constants::{DELEGATE_SEED, DELEGATION_SEED, PLAN_SEED, SUBSCRIPTION_SEED},
+    delegation,
     error::SubscriptionError,
-    state::{Plan, Subscription},
+    state::{Plan, SubscriberDelegation, Subscription},
 };
 
 #[derive(Accounts)]
@@ -29,6 +29,15 @@ pub struct Subscribe<'info> {
     pub subscription: Account<'info, Subscription>,
 
     #[account(
+        init_if_needed,
+        payer = subscriber,
+        space = 8 + SubscriberDelegation::INIT_SPACE,
+        seeds = [DELEGATION_SEED, subscriber.key().as_ref(), plan.mint.as_ref()],
+        bump,
+    )]
+    pub subscriber_delegation: Account<'info, SubscriberDelegation>,
+
+    #[account(
         mut,
         associated_token::mint = mint,
         associated_token::authority = subscriber,
@@ -47,31 +56,45 @@ pub struct Subscribe<'info> {
 }
 
 impl Subscribe<'_> {
-    pub fn run(&mut self, allowance: u64, bump: u8) -> Result<()> {
+    pub fn run(
+        &mut self,
+        allowance: u64,
+        max_amount_per_period: u64,
+        subscription_bump: u8,
+        delegation_bump: u8,
+    ) -> Result<()> {
         require!(allowance > 0, SubscriptionError::InvalidAllowance);
+        require!(
+            max_amount_per_period > 0,
+            SubscriptionError::InvalidMaxAmount
+        );
         require!(self.plan.is_active, SubscriptionError::PlanInactive);
+        require!(
+            self.plan.amount_per_period <= max_amount_per_period,
+            SubscriptionError::PriceAboveSubscriberMax
+        );
 
-        let existing = match self.subscriber_token_account.delegate {
-            COption::Some(current) if current == self.delegate_authority.key() => {
-                self.subscriber_token_account.delegated_amount
-            }
-            COption::Some(_) => return err!(SubscriptionError::ForeignDelegate),
-            COption::None => 0,
-        };
-        let total = existing
+        delegation::require_not_foreign(&self.subscriber_token_account, &self.delegate_authority)?;
+
+        let committed_total = self
+            .subscriber_delegation
+            .committed_total
             .checked_add(allowance)
             .ok_or(SubscriptionError::AllowanceOverflow)?;
 
-        token::approve(
-            CpiContext::new(
-                self.token_program.key(),
-                Approve {
-                    to: self.subscriber_token_account.to_account_info(),
-                    delegate: self.delegate_authority.to_account_info(),
-                    authority: self.subscriber.to_account_info(),
-                },
-            ),
-            total,
+        self.subscriber_delegation.set_inner(SubscriberDelegation {
+            subscriber: self.subscriber.key(),
+            mint: self.plan.mint,
+            committed_total,
+            bump: delegation_bump,
+        });
+
+        delegation::approve(
+            &self.token_program,
+            &self.subscriber_token_account,
+            &self.delegate_authority,
+            &self.subscriber,
+            committed_total,
         )?;
 
         self.subscription.set_inner(Subscription {
@@ -79,7 +102,8 @@ impl Subscribe<'_> {
             subscriber: self.subscriber.key(),
             next_charge_at: Clock::get()?.unix_timestamp,
             allowance_remaining: allowance,
-            bump,
+            max_amount_per_period,
+            bump: subscription_bump,
         });
 
         Ok(())
