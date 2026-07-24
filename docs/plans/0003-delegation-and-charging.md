@@ -1,6 +1,6 @@
 # 0003 — Delegation and charging
 
-- **Status:** Accepted
+- **Status:** Implemented
 - **Author:** Rafael Scherer
 - **Related:** builds on [0002](0002-subscription-plans.md); followed by
   [0004](0004-subscriber-spending-caps.md), [0005](0005-variable-pricing.md)
@@ -162,6 +162,17 @@ let total = existing
 
 Refusing when another program holds the delegate is deliberate: silently
 overwriting another protocol's delegation would break it.
+
+> **Superseded by [0004](0004-subscriber-spending-caps.md).** The read-and-add
+> arithmetic above is correct only while the token account's `delegated_amount`
+> faithfully mirrors program state, which stops being true the moment the
+> subscriber approves or revokes externally. 0004 replaces it with a
+> `SubscriberDelegation` PDA per `(subscriber, mint)` holding `committed_total`,
+> and every approving path writes that figure rather than computing a delta. The
+> `ForeignDelegate` guard survives on every approving path **except `cancel`**,
+> where refusing would let an unrelated dApp block a subscriber from closing their
+> own subscription. Read this section for why the delegation is shared; read 0004
+> for the arithmetic that is actually implemented.
 
 **`charge()`** — permissionless crank; the caller pays the transaction fee.
 
@@ -468,6 +479,15 @@ Rust + LiteSVM. Time-dependent cases warp the clock rather than sleeping.
     when `charge` runs, then it fails on the `has_one`/seeds constraint.
 25. Given a `Plan` address not matching the seeds for its stored merchant and
     `plan_id`, when `charge` runs, then it fails on the seeds constraint.
+
+As in [0002](0002-subscription-plans.md), scenario 25 turns out not to be
+independently reachable and has no test: the `seeds` constraint re-derives from the
+plan's own stored `merchant` and `plan_id`, so a legitimately created plan always
+matches its address, and substituting a *different* plan is caught by `has_one =
+plan` on the subscription first — scenario 24. Scenario 17 likewise has no test of
+its own; the sibling-subscription case it describes is exercised by scenario 15,
+which drains the shared pool and asserts the second merchant gets
+`DelegateRevoked`.
 
 **Guards and authorisation**
 
