@@ -1,0 +1,1 @@
+export const PRICE_CHANGE_NOTICE_SECONDS = 86_400;

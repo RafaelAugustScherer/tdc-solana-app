@@ -30,7 +30,7 @@ Each [workflow](workflow.md) phase has a concrete tool. The harness owns the
 | Research | `solana-dev` + `context7` MCP (current docs); the `solana-researcher` agent |
 | Plan | `/plan-feature` as a spec aid (account/PDA design) — capture the result in the documented plan under [`plans/`](plans/) |
 | Build | specialists: `anchor-engineer`, `solana-frontend-engineer`, `defi-engineer`, `token-engineer`, `pinocchio-engineer`; commands: `/scaffold`, `/build-program`, `/build-app`, `/generate-idl-client` |
-| Verify | `/test-and-fix`, `/test-rust`, `/test-ts`; `/diff-review`, `/audit-solana`, `/audit-infra`; `/benchmark`, `/profile-cu` |
+| Verify | `/test-and-fix`, `/test-rust`, `/test-ts`; `/diff-review`, `/audit-solana`, `/audit-infra`; `/benchmark`, `/profile-cu`; `@playwright/test` for `web/`'s E2E suite (`web/tests/`, run via `yarn test:e2e` against a local validator) |
 | Deploy | `/deploy` (devnet first, then mainnet) |
 | Env / CI | `/doctor`, `/setup-mcp`, `/setup-ci-cd` |
 
