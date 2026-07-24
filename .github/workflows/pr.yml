@@ -1,0 +1,27 @@
+name: pr
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  up-to-date:
+    name: branch is up to date with its base
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compare the branch against its base
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          behind=$(gh api "repos/$REPO/compare/$BASE...$HEAD_SHA" --jq '.behind_by')
+          if [ "$behind" -gt 0 ]; then
+            echo "::error::Branch is $behind commit(s) behind $BASE. Update it before merging: gh pr update-branch ${{ github.event.pull_request.number }}"
+            exit 1
+          fi
+          echo "Up to date with $BASE."

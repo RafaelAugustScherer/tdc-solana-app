@@ -83,3 +83,20 @@ plugin (namespaced, so it won't collide with this repo's config) and use
 - Conventional Commits (`feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`).
 - One PR maps to one accepted plan. Keep it small and reviewable.
 - The PR description links its plan and states how the Definition of Done was met.
+- **A PR merges only when its branch is up to date with `main`.** Bring it current
+  first — `gh pr update-branch <number>`, or merge/rebase `main` in yourself.
+
+*Why:* a green PR only proves the code worked against the `main` it was branched
+from. Two PRs can each pass alone and break once both land — one renames a helper,
+the other adds a caller; neither diff is wrong, and neither run ever saw the other's
+change. Updating first moves that discovery from `main` to the branch, where it is
+one person's problem instead of everyone's.
+
+This is enforced by the **main up to date** ruleset (Settings → Rules), which also
+requires changes to reach `main` through a PR — without that, the rule is one
+`git push origin main` away from meaningless. `.github/workflows/pr.yml` reports
+the same condition as a check, so a stale branch is visible on the PR rather than
+only at the merge button.
+
+Expect this to bite on stacked PRs: merging one makes every branch behind it stale,
+so update them in order. `gh pr merge --auto` handles the waiting.
