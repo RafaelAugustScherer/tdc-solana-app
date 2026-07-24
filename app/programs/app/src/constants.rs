@@ -1,4 +1,4 @@
 use anchor_lang::prelude::*;
 
 #[constant]
-pub const SEED: &str = "anchor";
+pub const PLAN_SEED: &[u8] = b"plan";
